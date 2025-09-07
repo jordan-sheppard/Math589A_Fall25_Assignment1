@@ -14,7 +14,7 @@ def solve_linear(a, b):
     else:
         return [-b / a] 
 
-def solve_quadratic_real_cosine(gamma, shift):
+def solve_quadratic_trig(gamma, shift):
     """Solves the equation
     x = y - shift,
     where
@@ -28,15 +28,15 @@ def solve_quadratic_real_cosine(gamma, shift):
     This leads to two real roots x_1, x_2, that are not
     repeated unless gamma = 1, -1.
     """
-    theta_1 = 0.5 * math.acos(gamma)
-    theta_2 = theta_1 + math.pi 
+    theta_1 = 0.5 * cmath.acos(gamma)
+    theta_2 = cmath.pi - theta_1
 
-    x_1 = math.cos(theta_1) - shift 
-    x_2 = math.cos(theta_2) - shift
+    x_1 = cmath.cos(theta_1) - shift 
+    x_2 = cmath.cos(theta_2) - shift
     return [x_1, x_2]
 
 
-def solve_quadratic_real_cosh(gamma, shift):
+def solve_quadratic_cosh(gamma, shift):
     """Solves the equation
     x = y - shift,
     where
@@ -50,14 +50,14 @@ def solve_quadratic_real_cosh(gamma, shift):
     cos(2iu) = cosh(2u) = gamma.
     This leads to a repeated real root x_1 = x_2. 
     """
-    u = 0.5 * math.acosh(gamma)
-    y = math.cosh(u)
+    u = 0.5 * cmath.acosh(gamma)
+    y = cmath.cosh(u)
     x1 = y - shift
     x2 = -y - shift
     return [x1, x2]
 
 
-def solve_quadratic_complex_conjugate(gamma, shift):
+def solve_quadratic_sinh(gamma, shift):
     """Solves the equation
     x = y - shift,
     where
@@ -74,8 +74,8 @@ def solve_quadratic_complex_conjugate(gamma, shift):
     This leads to two roots that are complex conjugates
     x_1 = x_2^*.
     """
-    u = 0.5 * math.acosh(-gamma)
-    y = 1j * math.sinh(u)
+    u = 0.5 * cmath.acosh(-gamma)
+    y = 1j * cmath.sinh(u)
     x1 = -shift + y 
     x2 = -shift - y
     return [x1, x2]
@@ -95,12 +95,14 @@ def solve_quadratic(a, b, c):
     beta = (b**2 - 4 * a * c) / (4 * (a**2))
     gamma = (2 * beta) - 1
 
-    if gamma < -1:
-        return solve_quadratic_complex_conjugate(gamma, shift)
-    elif gamma > 1:
-        return solve_quadratic_real_cosh(gamma, shift)
-    else:
-        return solve_quadratic_real_cosine(gamma, shift)
+    # Trig sub (potentially with complex arguments)
+    if isinstance(gamma, (int, float, complex)) and abs(gamma.real) <= 1 and abs(gamma.imag) < 1e-14:
+        return solve_quadratic_trig(gamma, shift)
+    # Hyperbolic trig sub
+    elif gamma.real < -1:
+        return solve_quadratic_sinh(gamma, shift)
+    else: # (gamma.real > 1)
+        return solve_quadratic_cosh(gamma, shift)
 
 
 def solve_degenerate_cubic_no_p(q, shift):

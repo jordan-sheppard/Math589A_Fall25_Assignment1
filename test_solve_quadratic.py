@@ -29,6 +29,8 @@ def roots_close(r1, r2, tol=ERROR_TOL):
     (1e6, -3e6, 2e6, [1.0, 2.0]),
     # Quadratic with small coefficients
     (1e-6, -3e-6, 2e-6, [1.0, 2.0]),
+    # Quadratic with imaginary coefficients 
+    (1, -2j, -1, [1j, 1j])
 ])
 def test_solve_quadratic(a, b, c, expected):
     result = solve_quadratic(a, b, c)
