@@ -21,7 +21,7 @@ def roots_close(r1, r2, tol=ERROR_TOL):
     # Case 4c: q/h real, q/h > 1 (should give one real, two complex roots)
     (1, 0, 0, -1, [1.0, cmath.exp(2j * math.pi / 3), cmath.exp(-2j * math.pi / 3)]),
     # Case 4d: q/h real, |q/h| <= 1 (should give three real roots)
-    (1, 0, -3, 2, [2.0, -1.0, -1.0]),
+    (1, 0, -3, 2, [-2.0, 1.0, 1.0]),
     # Degenerate cubic: triple root (h ≈ 0, p ≈ 0, q ≈ 0)
     (1, 0, 0, 0, [0.0, 0.0, 0.0]),
     # Degenerate cubic: three cube roots of -q/a, shifted (h ≈ 0, p ≈ 0, q ≠ 0)
@@ -31,7 +31,9 @@ def roots_close(r1, r2, tol=ERROR_TOL):
     # |q/h| <= 1, three real roots (explicit)
     (1, -3, -10, 24, [2.0, -3.0, 4.0]),
     # 1 real and 2 complex roots
-    (1, -2, 9, -18, [2.0, -3.0j, 3.0j])
+    (1, -2, 9, -18, [2.0, -3.0j, 3.0j]),
+    # Not cubic at all 
+    (0, 1, 4, 4, [-2.0, -2.0])
 ])
 def test_solve_cubic(a, b, c, d, expected):
     result = solve_cubic(a, b, c, d)

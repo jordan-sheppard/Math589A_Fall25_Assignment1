@@ -1,6 +1,6 @@
 import math, cmath
 
-ERROR_TOL = 1e-7
+ERROR_TOL = 1e-10
 
 def solve_linear(a, b):
     """Solves the linear equation
@@ -103,18 +103,16 @@ def solve_quadratic(a, b, c):
         return solve_quadratic_real_cosine(gamma, shift)
 
 
-def solve_degenerate_cubic(a, q, shift):
+def solve_degenerate_cubic_no_p(q, shift):
     """Solves for x, where 
     x = y + shift, 
     and y satisfies the degenerate cubic equation
-    ay^3 + q = 0.
+    y^3 + q = 0.
     """
-    if abs(q - 0.) < ERROR_TOL:     # We have a*y^3 = 0 (3 repeated real roots)
-        y = 0 
-        x = y + shift 
-        return [x, x, x]
+    if abs(q) < ERROR_TOL:     # We have y^3 = 0 (3 repeated real roots)
+        return [shift, shift, shift]
     else:                           # We have a*y^3 = -q, or y^3 = (-q/a)
-        rhs = complex(-q / a)
+        rhs = complex(-q)
         mag = abs(rhs)                                      # Complex radius of (-q/a)
         arg = math.atan2(rhs.imag, rhs.real)                # Complex angle of (-q/a)
         cbrt_mag = mag**(1/3)                               # Cube root magnitude of (-q/a)
@@ -122,42 +120,77 @@ def solve_degenerate_cubic(a, q, shift):
         y_roots = [cbrt_mag * cmath.exp(1j * theta) for theta in cbrt_args]
         x_roots = [y + shift for y in y_roots]
         return x_roots
+
+
+def solve_degenrate_cubic_no_q(p, shift):
+    """Solves for x, where
+    x = y + shift
+    and y satisfies the degenerate cubic equation
+    y^3 + py = 0
+    """
+    y1 = 0.
+    sqrt = cmath.sqrt if p > 0 else math.sqrt
+    y2 = sqrt(-p)
+    y3 = -sqrt(-p)
+    x_roots = [y1 + shift, y2 + shift, y3 + shift]
+    return x_roots
+
+
+def solve_cubic_3_real_roots(p, q, shift):
+    """Solves for x when there are 3 distinct 
+    real roots
+    (that is, when the discriminant is negative).
     
-
-def solve_cubic_imaginary(p:float, check_val:complex, shift:float):
-    D = math.sqrt(-p)           # If this is called, p < 0
-    phi = math.asinh(check_val.imag)  
-    sinh_tmp_val = math.sinh(phi / 3)
-    cosh_tmp_val = 1j * math.sqrt(3) * math.cosh(phi / 3)
-    y1 = -2 * D * sinh_tmp_val 
-    y2 = D * (sinh_tmp_val + cosh_tmp_val)
-    y3 = D * (sinh_tmp_val - cosh_tmp_val)
-    x_roots = [y1 + shift, y2 + shift, y3 + shift]
-    return x_roots 
-
-
-def solve_cubic_cosine(p:float, check_val:float, shift:float):
-    phi = math.acos(check_val)
-    sqrt_p = math.sqrt(p)
-    y1 = 2 * sqrt_p * math.cos((phi + 0) / 3)
-    y2 = 2 * sqrt_p * math.cos((phi - 2*math.pi) / 3)
-    y3 = 2 * sqrt_p * math.cos((phi - 4*math.pi) / 3)
-
-    x_roots = [y1 + shift, y2 + shift, y3 + shift]
+    Uses the formula
+    y_k = 2 sqrt(-p/3) * cos(1/3 * acos(3q/2p * sqrt(-3/p)-2k*pi/3))
+    and 
+    x_k = y_k + shift
+    """
+    inside_val = 1/3 * math.acos((3*q)/(2*p) * math.sqrt(-3/p))
+    y_roots = [
+        2 * math.sqrt(-p/3) 
+        * math.cos(inside_val - (2 * math.pi * k) / 3)
+        for k in range(3)
+    ]
+    x_roots = [
+        root + shift for root in y_roots
+    ]
     return x_roots
 
-def solve_cubic_cosh(p:float, check_val:float, shift:float, negative:bool=False):
-    factor = -1 if negative else 1
-    phi = math.acosh(check_val)
-    cosh_tmp_val = math.cosh(phi / 3)
-    sinh_tmp_val = 1j * math.sqrt(3) * math.sinh(phi / 3)
-    sqrt_p = math.sqrt(p)
-    y1 = factor * 2 * sqrt_p * cosh_tmp_val
-    y2 = factor * sqrt_p * (cosh_tmp_val + sinh_tmp_val)
-    y3 = factor * sqrt_p * (cosh_tmp_val - sinh_tmp_val)
-    x_roots = [y1 + shift, y2 + shift, y3 + shift]
+def solve_cubic_some_complex_roots(p, q, shift):
+    """Solves the equation
+    x = y + shift
+    where 
+    y^3 + py + q = 0
+    and the discriminant is > 0 by using hyperbolic trig
+    substitution.
+    """
+    # Get first root using hyperbolic trig substitution
+    if p > 0:
+        inside = math.asinh(
+            (3*q)/(2*p) * math.sqrt(3/p)
+        ) / 3
+        outside = -2 * math.sqrt(p / 3)
+        y_1 = outside * math.sinh(inside)
+    else:
+        inside = math.acosh(
+            (3*abs(q))/(2*abs(p)) * math.sqrt(3/abs(p))
+        ) / 3
+        sign_q = -1 if q < 0 else 1     # q=0 case already handled
+        outside = 2 * sign_q * math.sqrt(-p/3)
+        y_1 = outside * math.cosh(inside)
+    
+    # Get other two roots by factoring out (y-y_1):
+    # y^3 + py + q = (y-y_1)(ay^2 + by + c)
+    # Done using synthetic division, and using a quadratic solver
+    # on the quadratic portion
+    a = 1
+    b = y_1
+    c = p + y_1**2
+    other_roots = solve_quadratic(a, b, c) 
+    y_roots = [y_1] + other_roots 
+    x_roots = [y + shift for y in y_roots]
     return x_roots
-
 
 def solve_cubic(a, b, c, d):
     """Solve a*x^3 + b*x^2 + c*x + d = 0
@@ -171,47 +204,41 @@ def solve_cubic(a, b, c, d):
     if abs(a - 0.) < ERROR_TOL:
         return solve_quadratic(b, c, d)
 
-    ### Step 2: Depress the cubic to a*y^3 - 3a * p * y + q = 0
-    ### where y = x - shift
-    shift = -b / (3 * a)
-    p = (b**2 - (3 * a * c)) / (9 * a**2)
-    q = a*shift**3 + b*shift**2 + c*shift + d
-    h = 2 * a * p**(3/2)
-    
-    #######     ------ SOLVE VARIOUS CASES ------     #######
-    ### Case A: h = 0 (that is, p=0; no linear term in depressed cubic)
-    ### => Degenerate Cubic
-    if abs(h - 0.) < ERROR_TOL:
+    ### Step 2: Depress the cubic to y^3 + py + q = 0
+    ### where x = y + shift
+    # 2a) Normalize to monic: x^3 + A x^2 + B x + C = 0
+    A = b / a
+    B = c / a
+    C = d / a
+
+    shift = -A / 3
+    p = B - (A**2 / 3)
+    q = ((2 * A**3) / 27) - ((A * B) / 3) + C
+    discriminant = (q / 2)**2 + (p / 3)**3
+
+    ####### ------ SOLVE VARIOUS CASES ------ #######
+    ### Case A: p = 0 => No linear term in depressed cubic
+    if abs(p) < ERROR_TOL:
         print("A")
-        return solve_degenerate_cubic(a, q, shift)
-
-    ### Case B: p < 0 (that is, q/h imaginary)
-    ### => One real and 2 complex conjugate roots 
-    check_val = q / h     # Rest of cases end up using this
-    if p < 0:    
-        print("B")
-        return solve_cubic_imaginary(p, check_val, shift)
+        return solve_degenerate_cubic_no_p(q, shift)
     
-    else:
-        ### Case C: |q/h| <= 1 
-        ### => Three real roots
-        if abs(check_val) <= 1:
-            print("C")
-            return solve_cubic_cosine(p, check_val, shift)
-        
-        ### Case D: q/h < -1 
-        ### => One real root, two complex roots
-        elif check_val < -1:
-            print("D")
-            return solve_cubic_cosh(p, -check_val, shift, negative=True)
-        
-        ### Case E: q/h > 1
-        ### => One real root, two complex roots
-        else:
-            print("E")
-            return solve_cubic_cosh(p, check_val, shift)
-        
+    ### Case B: q = 0 => No constant term in depressed cubic
+    elif abs(q) < ERROR_TOL:
+        print("B")
+        return solve_degenrate_cubic_no_q(p, shift)
 
+    ### Case C: discriminant <= 0
+    ### => 3 Distinct Real Roots
+    elif discriminant <= 0:
+        print("C")
+        return solve_cubic_3_real_roots(p, q, shift)
+    
+    ### Case D: discriminant > 0
+    ### => Some complex roots
+    else:
+        print("D")
+        return solve_cubic_some_complex_roots(p, q, shift)
+        
 
 def main():
     tests = [
