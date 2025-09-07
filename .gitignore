@@ -2,4 +2,4 @@
 __pycache__ 
 .coverage
 .pytest_cache
-
+results.txt
