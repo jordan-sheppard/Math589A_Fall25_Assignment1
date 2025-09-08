@@ -1,5 +1,4 @@
-from cubic_solver import sqrt_trig, solve_cubic, solve_quadratic
-import math, cmath 
+from cubic_solver import sqrt_trig, solve_cubic, solve_quadratic 
 
 ERROR_TOL = 1e-10
 

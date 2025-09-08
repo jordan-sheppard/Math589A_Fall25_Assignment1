@@ -6,6 +6,8 @@ def sqrt_trig(z):
     """Return sqrt(z) without using radicals, via trig/hyperbolic substitution."""
     return solve_quadratic(1, 0, -z)[0]
 
+def is_real(z):
+    return abs(getattr(z, "imag", 0)) < ERROR_TOL
 
 def solve_linear(a, b):
     """Solves the linear equation
@@ -101,13 +103,16 @@ def solve_quadratic(a, b, c):
     gamma = (2 * beta) - 1
 
     # Trig sub (potentially with complex arguments)
-    if isinstance(gamma, (int, float, complex)) and abs(gamma.real) <= 1 and abs(gamma.imag) < 1e-14:
-        return solve_quadratic_trig(gamma, shift)
-    # Hyperbolic trig sub
-    elif gamma.real < -1:
-        return solve_quadratic_sinh(gamma, shift)
-    else: # (gamma.real > 1)
-        return solve_quadratic_cosh(gamma, shift)
+    if is_real(gamma) and abs(gamma.real) <= 1:
+        return solve_quadratic_trig(gamma.real, shift)
+    elif is_real(gamma) and gamma.real < -1:
+        return solve_quadratic_sinh(gamma.real, shift)
+    elif is_real(gamma):
+        return solve_quadratic_cosh(gamma.real, shift)
+    else:
+        # Fallback: gamma genuinely complex -> use cos directly
+        theta = 0.5 * cmath.acos(gamma)
+        return [cmath.cos(theta) - shift, cmath.cos(cmath.pi - theta) - shift]
 
 
 def solve_degenerate_cubic_no_p(q, shift):
@@ -225,25 +230,16 @@ def solve_cubic(a, b, c, d):
     q = ((2 * A**3) / 27) - ((A * B) / 3) + C
     discriminant = (q / 2)**2 + (p / 3)**3
 
-    ####### ------ SOLVE VARIOUS CASES ------ #######
-    ### Case A: p = 0 => No linear term in depressed cubic
+    ####### ------ SOLVE VARIOUS CASES ------ #######    
     if abs(p) < ERROR_TOL:
         return solve_degenerate_cubic_no_p(q, shift)
-    
-    ### Case B: q = 0 => No constant term in depressed cubic
-    elif abs(q) < ERROR_TOL:
-        return solve_degenrate_cubic_no_q(p, shift)
-
-    ### Case C: discriminant <= 0
-    ### => 3 Distinct Real Roots
-    elif discriminant <= 0:
+    if is_real(discriminant) and discriminant <= 0:
         return solve_cubic_3_real_roots(p, q, shift)
-    
-    ### Case D: discriminant > 0
-    ### => Some complex roots
-    else:
+    elif is_real(discriminant) and discriminant > 0:
         return solve_cubic_some_complex_roots(p, q, shift)
-        
+    else:
+        # discriminant is genuinely complex (rare) => default to complex roots case
+        return solve_cubic_some_complex_roots(p, q, shift)
 
 def main():
     tests = [
