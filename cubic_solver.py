@@ -2,6 +2,11 @@ import math, cmath
 
 ERROR_TOL = 1e-10
 
+def sqrt_trig(z):
+    """Return sqrt(z) without using radicals, via trig/hyperbolic substitution."""
+    return solve_quadratic(1, 0, -z)[0]
+
+
 def solve_linear(a, b):
     """Solves the linear equation
     ax + b = 0.
@@ -115,11 +120,14 @@ def solve_degenerate_cubic_no_p(q, shift):
         return [shift, shift, shift]
     else:                           # We have a*y^3 = -q, or y^3 = (-q/a)
         rhs = complex(-q)
-        mag = abs(rhs)                                      # Complex radius of (-q/a)
-        arg = math.atan2(rhs.imag, rhs.real)                # Complex angle of (-q/a)
-        cbrt_mag = mag**(1/3)                               # Cube root magnitude of (-q/a)
-        cbrt_args = [arg + 2*k*math.pi/3 for k in range(3)] # Cube root angles (there are 3) of (-q/a)
-        y_roots = [cbrt_mag * cmath.exp(1j * theta) for theta in cbrt_args]
+        # Get principal root via exponentiation trick
+        y0 = cmath.exp(cmath.log(rhs)/3)
+        # get other two roots via rotation in complex plane
+        y_roots = [
+            y0,
+            y0 * cmath.exp(2j*math.pi/3),
+            y0 * cmath.exp(4j*math.pi/3)
+        ]
         x_roots = [y + shift for y in y_roots]
         return x_roots
 
@@ -131,9 +139,8 @@ def solve_degenrate_cubic_no_q(p, shift):
     y^3 + py = 0
     """
     y1 = 0.
-    sqrt = cmath.sqrt if p > 0 else math.sqrt
-    y2 = sqrt(-p)
-    y3 = -sqrt(-p)
+    y2 = sqrt_trig(-p)
+    y3 = -sqrt_trig(-p)
     x_roots = [y1 + shift, y2 + shift, y3 + shift]
     return x_roots
 
@@ -148,10 +155,10 @@ def solve_cubic_3_real_roots(p, q, shift):
     and 
     x_k = y_k + shift
     """
-    inside_val = 1/3 * math.acos((3*q)/(2*p) * math.sqrt(-3/p))
+    inside_val = 1/3 * cmath.acos((3*q)/(2*p) * sqrt_trig(-3/p))
     y_roots = [
-        2 * math.sqrt(-p/3) 
-        * math.cos(inside_val - (2 * math.pi * k) / 3)
+        2 * sqrt_trig(-p/3) 
+        * cmath.cos(inside_val - (2 * math.pi * k) / 3)
         for k in range(3)
     ]
     x_roots = [
@@ -169,18 +176,18 @@ def solve_cubic_some_complex_roots(p, q, shift):
     """
     # Get first root using hyperbolic trig substitution
     if p > 0:
-        inside = math.asinh(
-            (3*q)/(2*p) * math.sqrt(3/p)
+        inside = cmath.asinh(
+            (3*q)/(2*p) * sqrt_trig(3/p)
         ) / 3
-        outside = -2 * math.sqrt(p / 3)
-        y_1 = outside * math.sinh(inside)
+        outside = -2 * sqrt_trig(p / 3)
+        y_1 = outside * cmath.sinh(inside)
     else:
-        inside = math.acosh(
-            (3*abs(q))/(2*abs(p)) * math.sqrt(3/abs(p))
+        inside = cmath.acosh(
+            (3*abs(q))/(2*abs(p)) * sqrt_trig(3/abs(p))
         ) / 3
         sign_q = -1 if q < 0 else 1     # q=0 case already handled
-        outside = 2 * sign_q * math.sqrt(-p/3)
-        y_1 = outside * math.cosh(inside)
+        outside = 2 * sign_q * sqrt_trig(-p/3)
+        y_1 = outside * cmath.cosh(inside)
     
     # Get other two roots by factoring out (y-y_1):
     # y^3 + py + q = (y-y_1)(ay^2 + by + c)
@@ -221,24 +228,20 @@ def solve_cubic(a, b, c, d):
     ####### ------ SOLVE VARIOUS CASES ------ #######
     ### Case A: p = 0 => No linear term in depressed cubic
     if abs(p) < ERROR_TOL:
-        print("A")
         return solve_degenerate_cubic_no_p(q, shift)
     
     ### Case B: q = 0 => No constant term in depressed cubic
     elif abs(q) < ERROR_TOL:
-        print("B")
         return solve_degenrate_cubic_no_q(p, shift)
 
     ### Case C: discriminant <= 0
     ### => 3 Distinct Real Roots
     elif discriminant <= 0:
-        print("C")
         return solve_cubic_3_real_roots(p, q, shift)
     
     ### Case D: discriminant > 0
     ### => Some complex roots
     else:
-        print("D")
         return solve_cubic_some_complex_roots(p, q, shift)
         
 

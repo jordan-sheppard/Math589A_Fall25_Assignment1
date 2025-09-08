@@ -1,8 +1,7 @@
-from cubic_solver import solve_cubic, solve_quadratic
+from cubic_solver import sqrt_trig, solve_cubic, solve_quadratic
 import math, cmath 
 
 ERROR_TOL = 1e-10
-
 
 def solve_biquadratic(a, b, c, shift):
     """Solves the equation x = y + shift, where
@@ -11,12 +10,9 @@ def solve_biquadratic(a, b, c, shift):
     y_squared_vals = solve_quadratic(a, b, c)
     y_roots = []
     for val in y_squared_vals:
-        if type(val) is float and val >= 0:
-            y_roots.append(math.sqrt(val))
-            y_roots.append(-math.sqrt(val))
-        else:
-            y_roots.append(cmath.sqrt(val))
-            y_roots.append(-cmath.sqrt(val))
+        sqrt_val = sqrt_trig(val)
+        y_roots.append(sqrt_val)
+        y_roots.append(-sqrt_val)
     x_roots = [y + shift for y in y_roots]
     return x_roots
 
@@ -66,11 +62,10 @@ def solve_quartic(a, b, c, d, e):
     ### y^4 + py^2 + qy + r = (y^2 + sqrt(2*z0)y + alpha)(y^2 - sqrt(2*z0)y + beta)
     ### where alpha = z0 - q/(2*sqrrt(2*z0))
     ### and   beta  = z0 + q/(2*sqrrt(2*z0))
-    sqrt = math.sqrt if real_root >= 0 else cmath.sqrt
-    alpha = real_root - q / (2*sqrt(2*real_root))
-    beta = real_root + q / (2*sqrt(2*real_root))
-    y_vals_1 = solve_quadratic(1, sqrt(2 * real_root), alpha)
-    y_vals_2 = solve_quadratic(1, sqrt(2 * real_root), beta)
+    alpha = real_root - q / (2*sqrt_trig(2*real_root))
+    beta = real_root + q / (2*sqrt_trig(2*real_root))
+    y_vals_1 = solve_quadratic(1, sqrt_trig(2 * real_root), alpha)
+    y_vals_2 = solve_quadratic(1, sqrt_trig(2 * real_root), beta)
     y_roots = y_vals_1 + y_vals_2
     x_roots = [y + shift for y in y_roots]
     return x_roots
