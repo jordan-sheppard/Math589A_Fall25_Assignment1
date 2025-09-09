@@ -233,9 +233,9 @@ def solve_cubic(a, b, c, d):
     ####### ------ SOLVE VARIOUS CASES ------ #######    
     if abs(p) < ERROR_TOL:
         return solve_degenerate_cubic_no_p(q, shift)
-    if is_real(discriminant) and discriminant <= 0:
+    if is_real(discriminant) and discriminant.real <= 0:
         return solve_cubic_3_real_roots(p, q, shift)
-    elif is_real(discriminant) and discriminant > 0:
+    elif is_real(discriminant) and discriminant.real > 0:
         return solve_cubic_some_complex_roots(p, q, shift)
     else:
         # discriminant is genuinely complex (rare) => default to complex roots case
