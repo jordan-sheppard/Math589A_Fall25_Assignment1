@@ -1,6 +1,6 @@
-from cubic_solver import sqrt_trig, solve_cubic, solve_quadratic 
+from cubic_solver import sqrt_trig, solve_cubic, solve_quadratic, is_real
 
-ERROR_TOL = 1e-10
+ERROR_TOL = 1e-8
 
 def solve_biquadratic(a, b, c, shift):
     """Solves the equation x = y + shift, where
@@ -15,62 +15,42 @@ def solve_biquadratic(a, b, c, shift):
     x_roots = [y + shift for y in y_roots]
     return x_roots
 
+
 def solve_quartic(a, b, c, d, e):
-    """Solve a*x^4 + b*x^3 + c*x^2 + d*x + e = 0.
-    Returns a list of 1..4 roots (real numbers or complex numbers).
-    If the leading coefficients are zero the function will
-    handle lower-degree polynomials automatically.
-    """
-    ##### Check degenerate cases
-    if abs(a) < ERROR_TOL:  # Actully cubic
+    # Degenerate case (a=0) => Really have a cubic equation
+    if abs(a) < ERROR_TOL:
         return solve_cubic(b, c, d, e)
-    
-    if abs(e) < ERROR_TOL:  # Can factor out an x
-        x1 = 0.
-        other_roots = solve_cubic(a, b, c, d)
-        return [x1] + other_roots 
 
-    ### Depress the quartic: y^4 + py^2 + qy + r = 0
-    ### and x = y + shift
-    p = (8*a*c - 3*b**2) / (8 * a**2)
-    q = (b**3 - 4*a*b*c + 8*(a**2)*d) / (8*a**3)
-    r = (-3*b**4 + 256*(a**3)*e - 64*(a**2)*b*d + 16*a*(b**2)*c) / (256*a**4)
+    # Depress quartic: x = y - b/(4a)
+    p = (8*a*c - 3*b**2)/(8*a**2)
+    q = (b**3 - 4*a*b*c + 8*a**2*d)/(8*a**3)
+    r = (-3*b**4 + 256*a**3*e - 64*a**2*b*d + 16*a*b**2*c)/(256*a**4)
     shift = -b / (4 * a)
+    y_roots = []
 
-
-    ### Solve degenerate cases of depressed quartic 
-    # q = 0 => Biquadratic form y^4 + py^2 + r = 0
     if abs(q) < ERROR_TOL:
-        return solve_biquadratic(1, p, r, shift)
-    
+        x_roots = solve_biquadratic(1, p, r, shift)
+    else:
+        # General quartic: solve resolvent cubic
+        cubic_roots = solve_cubic(1, -p/2, -r, p*r/2 - q**2/8)
+        z0 = cubic_roots[0]  # pick one root
+        u2 = 2*z0 - p        # This had issues before - I just had 2sqrt(2z0).
+        u = sqrt_trig(u2)
 
-    ### Solve resolvent cubic and find one real root
-    cubic_roots = solve_cubic(1, -p/2, -r, (p*r)/2 - (q**2)/8)
-    real_root = None 
-    for root in cubic_roots:
-        if type(root) is float:
-            real_root = root
-            break 
-        elif type(root) is complex and abs(root.imag) < ERROR_TOL:
-            real_root = root.real 
-            break 
-    if real_root is None:
-        raise RuntimeError("No real root of resolvent cubic found. Aborting.")
+        if abs(u) < ERROR_TOL:
+            # u ≈ 0 => biquadratic fallback
+            x_roots = solve_biquadratic(1, p, r, shift)
+        else:
+            y_roots += solve_quadratic(1, u, z0 - q/(2*u))
+            y_roots += solve_quadratic(1, -u, z0 + q/(2*u))
 
-    ### Solve resulting quadratics to get roots of quartic
-    ### y^4 + py^2 + qy + r = (y^2 + sqrt(2*z0)y + alpha)(y^2 - sqrt(2*z0)y + beta)
-    ### where alpha = z0 - q/(2*sqrrt(2*z0))
-    ### and   beta  = z0 + q/(2*sqrrt(2*z0))
-    alpha = real_root - q / (2*sqrt_trig(2*real_root))
-    beta = real_root + q / (2*sqrt_trig(2*real_root))
-    y_vals_1 = solve_quadratic(1, sqrt_trig(2 * real_root), alpha)
-    y_vals_2 = solve_quadratic(1, sqrt_trig(2 * real_root), beta)
-    y_roots = y_vals_1 + y_vals_2
-    x_roots = [y + shift for y in y_roots]
+            # Shift back
+            x_roots = [y - b/(4*a) for y in y_roots]
+
+    # Clamp tiny values to zero for numerical error
+    x_roots = [0 if abs(x) < ERROR_TOL else x for x in x_roots]
+
     return x_roots
-
-
-    
 
 
 def main():

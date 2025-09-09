@@ -1,6 +1,7 @@
 import math
 import cmath
 import pytest
+import numpy as np
 from quartic_solver import solve_quartic, ERROR_TOL
 
 def roots_close(r1, r2, tol=ERROR_TOL):
@@ -26,7 +27,24 @@ def roots_close(r1, r2, tol=ERROR_TOL):
     (1, 0, 4, 0, 4, [1.41421356237j, -1.41421356237j, 1.41421356237j, -1.41421356237j]),
     # x^4 = 0 => roots: 0, 0, 0, 0
     (1, 0, 0, 0, 0, [0.0, 0.0, 0.0, 0.0]),
+    (1, 0, 5, 0, 4, [1j, -1j, 2j, -2j])
 ])
 def test_solve_quartic(a, b, c, d, e, expected):
     result = solve_quartic(a, b, c, d, e)
     assert roots_close(result, expected), f"Failed for a={a}, b={b}, c={c}, d={d}, e={e}: got {result}, expected {expected}"
+
+
+
+def test_random_real_roots():
+    # Random real roots
+    np.random.seed(50)
+    for i in range(50):
+        roots = np.random.random(size=4).tolist()
+        poly = np.poly(roots)
+        a, b, c, d, e = poly
+        
+        # Solve the quartic equation
+        solved_roots = solve_quartic(a, b, c, d, e)
+        
+        # Check if the solved roots are close to the original roots
+        assert roots_close(solved_roots, roots), f"Failed for roots {roots} (a={a}, b={b}, c={c}, d={d}, e={e}): got {solved_roots}"
